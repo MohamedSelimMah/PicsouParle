@@ -1,73 +1,196 @@
-# Test Technique #2 — Generateur de Video Shorts par IA
+# Picsou Parle
 
-## "Picsou Parle" — Pipeline de generation de short videos
+Prompt-to-video generator that creates short vertical MP4 videos in the style of social Shorts/Reels:
 
----
+- Script generation (LLM via OpenRouter)
+- French voice generation (edge-tts)
+- Word-level timestamps
+- Character mouth animation (open/closed states from audio amplitude)
+- Dynamic highlighted subtitles
+- Final composition with FFmpeg
 
-**Duree estimee :** 4 heures
-**Stack :** Node.js ou Python + API IA (Claude / OpenAI / Gemini) + FFmpeg
-**Livrable :** Repository Git + au moins 1 video generee de demo
+Output videos are written to `output/`.
 
----
+## Features
 
-## Concept
+- End-to-end pipeline from a single text prompt
+- French-first content and voice defaults
+- Automatic retry and fallback model behavior for LLM calls
+- CLI mode for quick local generation
+- FastAPI mode for web/app integration (with SSE progress endpoint)
+- Optional background music mixing (drop a file into `assets/music/`)
 
-Vous connaissez peut-etre le compte Instagram **@rabintouchable** : des videos courtes (15-60 secondes) avec un personnage illustre qui "parle" sur un fond simple, accompagne de sous-titres dynamiques. Le format est viral, simple visuellement, mais techniquement interessant a automatiser.
+## Tech Stack
 
-**Votre mission :** construire un pipeline qui, a partir d'un simple prompt texte, genere automatiquement une video de type Shorts/Reels prete a etre publiee.
+- Python 3
+- FastAPI + Uvicorn
+- OpenRouter (OpenAI-compatible SDK)
+- edge-tts
+- Pillow
+- FFmpeg
 
-Le personnage utilise pour ce test sera **Uncle Scrooge (Picsou)**.
+## Project Layout
 
-### Exemple de prompt en entree
-
+```text
+backend/
+	cli.py                    # CLI entry point
+	main.py                   # FastAPI app
+	config.py                 # Settings from env/.env
+	pipeline/
+		orchestrator.py         # Step orchestration + run state
+		steps/
+			generate_script.py
+			generate_voice.py
+			generate_timestamps.py
+			prepare_visuals.py
+			build_subtitles.py
+			compose_video.py
+assets/
+	character/
+		picsou_mouth_closed.png
+		picsou_mouth_open.png
+output/                     # Final MP4 files
+tmp/                        # Intermediate files
+prompts/
+	picsou_script.txt
 ```
-Explique pourquoi il ne faut jamais prêter d'argent à ses amis, sur un ton
-humoristique et cynique, comme si Picsou donnait un conseil financier.
+
+## Prerequisites
+
+1. Python 3.10+
+2. FFmpeg installed and available in PATH
+3. OpenRouter API key
+
+Install FFmpeg on Ubuntu/Debian:
+
+```bash
+sudo apt update
+sudo apt install -y ffmpeg
 ```
 
-### Resultat attendu
+## Installation
 
-Une video MP4 de 15 a 45 secondes contenant :
-- Un **fond** sobre ou thematique (couleur unie, gradient, ou image generee)
-- Le **personnage Picsou** au centre/premier plan, avec une animation de parole
-- Une **voix off** generee par IA lisant le texte
-- Des **sous-titres** dynamiques synchronises mot par mot ou phrase par phrase
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
 
----
+## Configuration
 
-## Contrainte technique majeure
+Create a `.env` file at repository root:
 
-> **Aucun service proprietaire de generation video** (Higgsfield, HeyGen, Synthesia, D-ID, Runway, etc.)
->
-> Uniquement des **API generiques d'IA** (Claude, OpenAI, Gemini) combinees a des **outils open source** (FFmpeg, Pillow/Sharp, etc.) pour l'assemblage.
+```env
+OPENROUTER_API_KEY=your_openrouter_key
 
-L'objectif est d'evaluer votre capacite a **orchestrer plusieurs API d'IA** et a **assembler le resultat** vous-meme, pas a brancher un SaaS qui fait tout.
+# Optional
+LLM_MODEL=google/gemma-4-26b-a4b-it:free
+TTS_VOICE=fr-FR-HenriNeural
+VIDEO_FPS=30
+KEEP_TEMP=false
+MUSIC_VOLUME=0.12
+```
 
----
+Notes:
 
-## Documents
+- `OPENROUTER_API_KEY` is required for script generation.
+- `edge-tts` does not require an API key.
 
-1. **[SUJET.md](./SUJET.md)** — Specifications detaillees du pipeline
-2. **[ARCHITECTURE.md](./ARCHITECTURE.md)** — Contraintes techniques et structure du projet
-3. **[EVALUATION.md](./EVALUATION.md)** — Grille d'evaluation
-4. **[CLAUDE_MD_GUIDE.md](./CLAUDE_MD_GUIDE.md)** — Attentes pour le fichier CLAUDE.md
+## Quick Start (CLI)
 
----
+Generate a video from a prompt:
 
-## Rendu
+```bash
+python -m backend.cli --prompt "Pourquoi il ne faut jamais preter d'argent a ses amis"
+```
 
-- Un **repository Git** avec historique de commits propre
-- Un fichier **CLAUDE.md** a la racine
-- Au moins **1 video de demo** generee (commitee ou lien de telechargement)
-- Les **prompts utilises** pour chaque etape documentes dans le code
-- Un **README** avec les instructions pour generer une video depuis un prompt
+Useful flags:
 
----
+```bash
+python -m backend.cli --prompt "..." --verbose
+python -m backend.cli --prompt "..." --keep-temp
+python -m backend.cli --prompt "..." --voice fr-FR-HenriNeural
+python -m backend.cli --prompt "..." --model google/gemma-4-31b-it:free
+python -m backend.cli --prompt "..." --from-step compose_video
+```
 
-## Note sur l'utilisation de l'IA
+## Run as API
 
-L'utilisation d'outils d'IA est **autorisee et encouragee** — c'est meme le coeur du sujet. Vous serez evalue sur votre capacite a :
-- Choisir la bonne API pour chaque etape du pipeline
-- Rediger des prompts efficaces (prompt engineering)
-- Orchestrer les appels et gerer les erreurs
-- Assembler le resultat final avec des outils programmatiques
+Start server:
+
+```bash
+uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Endpoints:
+
+- `POST /api/generate` with body `{ "prompt": "..." }`
+- `GET /api/runs/{run_id}/status`
+- `GET /api/runs/{run_id}/progress` (SSE)
+- `GET /api/runs/{run_id}/video`
+
+Example:
+
+```bash
+curl -X POST http://localhost:8000/api/generate \
+	-H "Content-Type: application/json" \
+	-d '{"prompt":"Explique pourquoi la radinerie est une strategie"}'
+```
+
+## Pipeline Steps
+
+1. `generate_script` — LLM generates structured Picsou monologue JSON
+2. `generate_voice` — edge-tts synthesizes MP3 + word boundaries
+3. `generate_timestamps` — validates/normalizes timing data
+4. `prepare_visuals` — builds gradient background and loads character states
+5. `build_subtitles` — builds dynamic subtitle groups
+6. `compose_video` — frame rendering + FFmpeg muxing to MP4
+
+## Assets
+
+Character assets expected by default:
+
+- `assets/character/picsou_mouth_closed.png`
+- `assets/character/picsou_mouth_open.png`
+
+If `picsou_mouth_open.png` is missing, the closed image is reused.
+
+Optional background music:
+
+- Place one file in `assets/music/` (`.mp3`, `.wav`, `.ogg`, `.m4a`)
+
+## Testing
+
+Run tests:
+
+```bash
+pytest -q
+```
+
+Or run the quick end-to-end script:
+
+```bash
+python test_pipeline.py
+```
+
+## Troubleshooting
+
+- `OPENROUTER_API_KEY is not set`
+	- Add the key in `.env` and restart your shell/server.
+
+- `ffmpeg: command not found`
+	- Install FFmpeg and verify with `ffmpeg -version`.
+
+- No character visible in output
+	- Check `assets/character/picsou_mouth_closed.png` exists.
+
+- Subtitle font looks basic
+	- Add a bold font at `assets/fonts/Montserrat-Bold.ttf`.
+
+## Related Docs
+
+- `SUJET.md`
+- `ARCHITECTURE.md`
+- `EVALUATION.md`
+- `CLAUDE_MD_GUIDE.md`
