@@ -31,9 +31,7 @@ Output: a ~20–40s vertical MP4 in `output/`.
 
 **Prompt:** *"Explique pourquoi il ne faut jamais prêter de l'argent à ses amis, avec un ton sarcastique et cynique, comme si un milliardaire donnait un conseil brutal."*
 
-https://github.com/user-attachments/assets/picsou_189d594409f8.mp4
-
-> The generated video is also available at [`screenshots/generated-test/picsou_189d594409f8.mp4`](screenshots/generated-test/picsou_189d594409f8.mp4).
+📥 [Download the generated video](screenshots/generated-test/picsou_189d594409f8.mp4)
 
 ---
 
