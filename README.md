@@ -9,7 +9,7 @@ Type a topic → get a finished MP4 with:
 - Natural French TTS with word-level timing
 - Animated character with lip-sync
 - Dynamic highlighted subtitles
-- Ken Burns background + optional music
+- Preset-driven animated backgrounds + optional music
 
 ---
 
@@ -54,7 +54,7 @@ Output: a ~20–40s vertical MP4 in `output/`.
  └────────┬─────────────┘
           ▼
  ┌──────────────────┐
- │  prepare_visuals  │  Gradient/AI background + character assets
+ │  prepare_visuals  │  Preset background render/cache + character assets + audio amplitudes
  └────────┬─────────┘
           ▼
  ┌──────────────────┐
@@ -66,7 +66,7 @@ Output: a ~20–40s vertical MP4 in `output/`.
  └──────────────────┘
 ```
 
-Each step receives and returns a `PipelineContext` dataclass — no globals, fully resumable with `--from-step`.
+Each step receives and returns a `PipelineContext` dataclass — no globals inside the pipeline itself. The current run registry is in memory, so `--from-step` is a developer-oriented hook, not a persisted resume mechanism across fresh CLI invocations.
 
 ---
 
@@ -74,23 +74,22 @@ Each step receives and returns a `PipelineContext` dataclass — no globals, ful
 
 | Feature | Details |
 |---|---|
-| **Script generation** | LLM via OpenRouter with 11-model fallback chain for free usage |
+| **Script generation** | LLM via OpenRouter with structured JSON output and a bundled fallback chain |
 | **Voice synthesis** | edge-tts (Microsoft Neural TTS) — free, no API key |
+| **Word timing** | Native `WordBoundary` timestamps from edge-tts |
 | **Lip-sync animation** | Adaptive RMS threshold, open/closed mouth states at 30fps |
 | **Dynamic subtitles** | Word-level highlight with auto line-wrapping |
-| **Ken Burns effect** | Slow zoom on background over video duration |
-| **AI backgrounds** | Optional FLUX.1 image generation via `--ai-background` |
+| **Background presets** | `luxury_car` and `seaside`, exposed in the CLI, API, and web UI |
+| **Background rendering** | Animated preset scenes, cached in `assets/cache/`, with OpenRouter image generation when a key is available |
 | **Background music** | Auto-mixed at low volume from `assets/music/` |
-| **Asset caching** | Backgrounds cached by mood in `assets/cache/` |
-| **Web UI** | Glassmorphism dark theme with SSE real-time progress |
-| **Resume pipeline** | `--from-step` to restart from any step using cached intermediates |
+| **Web UI** | Single-file frontend with SSE real-time progress and background selection |
 | **Auto-retry** | Exponential backoff + model fallback on rate limits |
 
 ---
 
 ## Prerequisites
 
-- **Python** ≥ 3.10
+- **Python** ≥ 3.11
 - **FFmpeg** ≥ 4.x in PATH
 - **OpenRouter API key** (free tier works)
 
@@ -128,11 +127,12 @@ cp .env.example .env
 | `OPENROUTER_API_KEY` | Yes | — | OpenRouter API key |
 | `LLM_MODEL` | No | `google/gemma-4-26b-a4b-it:free` | Primary LLM model |
 | `TTS_VOICE` | No | `fr-FR-HenriNeural` | edge-tts voice ID |
-| `AI_BACKGROUND` | No | `false` | Generate backgrounds with AI |
 | `IMAGE_MODEL` | No | `black-forest-labs/FLUX.1-schnell:free` | Image generation model |
 | `VIDEO_FPS` | No | `30` | Output video framerate |
 | `MUSIC_VOLUME` | No | `0.12` | Background music mix level |
 | `KEEP_TEMP` | No | `false` | Keep intermediate files |
+
+Background presets currently try OpenRouter image generation automatically when `OPENROUTER_API_KEY` is available, then fall back to built-in renders and cache the result in `assets/cache/`.
 
 ---
 
@@ -144,15 +144,19 @@ cp .env.example .env
 # Basic generation
 python -m backend.cli --prompt "Les crypto-monnaies sont une arnaque"
 
-# With AI background and verbose logging
-python -m backend.cli --prompt "..." --ai-background --verbose
+# Choose the visual universe
+python -m backend.cli --prompt "..." --background seaside
 
-# Resume from a specific step (uses cached files in tmp/)
-python -m backend.cli --prompt "..." --from-step compose_video --keep-temp
+# Keep intermediates and enable verbose logging
+python -m backend.cli --prompt "..." --keep-temp --verbose
 
 # Custom voice and model
 python -m backend.cli --prompt "..." --voice fr-FR-HenriNeural --model google/gemma-4-26b-a4b-it:free
 ```
+
+Valid background modes are currently `luxury_car` and `seaside`.
+
+`--from-step` is exposed in the CLI, but it does not restore a previous run from disk on its own. It is only useful when the in-memory `PipelineContext` has already been populated by the current process.
 
 ### Web UI
 
@@ -162,13 +166,23 @@ uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 
 Open **http://127.0.0.1:8000** (or `http://localhost:8000`) — the UI shows real-time progress with step-by-step tracking, animated character, and gold confetti on completion.
 
+The web UI exposes the same two background presets as the CLI and sends them as `background_mode` in the generation request.
+
 > **Note:** If `localhost` doesn't work, use `127.0.0.1` directly. Some Linux systems resolve `localhost` to IPv6 `::1` which may not match the server binding.
 
 ### API
 
+```bash
+curl -X POST http://127.0.0.1:8000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Pourquoi les riches deviennent parano", "background_mode": "seaside"}'
+```
+
+`background_mode` currently accepts `luxury_car` or `seaside`.
+
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/generate` | Start generation (`{"prompt": "..."}`) |
+| `POST` | `/api/generate` | Start generation (`{"prompt": "...", "background_mode": "luxury_car"}`) |
 | `GET` | `/api/runs/{id}/status` | Run status + script metadata |
 | `GET` | `/api/runs/{id}/progress` | SSE stream of step updates |
 | `GET` | `/api/runs/{id}/video` | Download finished MP4 |
@@ -182,6 +196,7 @@ backend/
 ├── cli.py                          # CLI entry point
 ├── main.py                         # FastAPI server + SSE
 ├── config.py                       # pydantic-settings configuration
+├── presets.py                      # Background preset definitions
 ├── pipeline/
 │   ├── orchestrator.py             # Step sequencing & run state
 │   ├── context.py                  # PipelineContext dataclass
@@ -199,6 +214,7 @@ backend/
 │   └── image.py                    # AI background generation
 └── utils/
     ├── audio.py                    # RMS amplitude extraction
+  ├── backgrounds.py              # Animated preset background renderers
     ├── fonts.py                    # Font discovery
     ├── rendering.py                # Frame rendering (Ken Burns, subtitles)
     └── retry.py                    # Async retry with backoff
@@ -210,7 +226,7 @@ assets/
 ├── character/                      # Mouth open/closed PNGs
 ├── fonts/                          # Optional: Montserrat-Bold.ttf
 ├── backgrounds/                    # Optional: static backgrounds
-├── cache/                          # Auto-cached backgrounds by mood
+├── cache/                          # Auto-cached preset backgrounds by mode
 └── music/                          # Optional: background music file
 tests/                              # 26 unit tests
 output/                             # Generated MP4 files
@@ -268,5 +284,7 @@ Tests cover: JSON parsing edge cases, subtitle grouping logic, audio threshold c
 | `ffmpeg: command not found` | Install FFmpeg: `sudo apt install ffmpeg` |
 | No character in video | Check `assets/character/picsou_mouth_closed.png` exists |
 | Subtitle font looks basic | Add `assets/fonts/Montserrat-Bold.ttf` |
-| 429 rate limit errors | Automatic — falls back through 11 free models |
+| Invalid `background_mode` | Use `luxury_car` or `seaside` |
+| `--from-step` doesn't resume an old CLI run | Current run state is in memory only; rerun from the start or wire resume to an existing context |
+| 429 rate limit errors | Automatic — falls back through the bundled model chain |
 | Subtitles cut off | Handled — auto line-wrapping at 52px font size |
