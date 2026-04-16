@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Environment
+.env
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project
+output/*
+!output/.gitkeep
+tmp/*
+!tmp/.gitkeep
+
+# Node
+node_modules/
+.next/
+apps/web/.next/
+apps/web/node_modules/
