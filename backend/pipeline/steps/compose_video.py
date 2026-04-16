@@ -121,6 +121,7 @@ async def run(ctx: PipelineContext, settings) -> PipelineContext:
         "-c:v", "libx264", "-preset", "fast", "-crf", "23",
         "-c:a", "aac", "-b:a", "192k",
         "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart",
         "-t", str(duration + 0.3),
         "-shortest",
         str(output_path),
