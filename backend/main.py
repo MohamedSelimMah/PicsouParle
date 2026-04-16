@@ -15,6 +15,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from backend.config import settings
 from backend.pipeline.orchestrator import run_pipeline, get_run, start_run
+from backend.presets import VALID_BACKGROUND_MODES, DEFAULT_BACKGROUND_MODE
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,6 +54,7 @@ async def character_asset(filename: str):
 
 class GenerateRequest(BaseModel):
     prompt: str
+    background_mode: str = DEFAULT_BACKGROUND_MODE
 
 
 class GenerateResponse(BaseModel):
@@ -76,9 +78,11 @@ async def generate(req: GenerateRequest):
         raise HTTPException(400, "Prompt is required")
     if len(prompt) > 500:
         raise HTTPException(400, "Prompt too long (max 500 chars)")
+    if req.background_mode not in VALID_BACKGROUND_MODES:
+        raise HTTPException(400, f"Invalid background_mode. Valid: {VALID_BACKGROUND_MODES}")
 
     q: asyncio.Queue = asyncio.Queue()
-    run_id = start_run(prompt)
+    run_id = start_run(prompt, background_mode=req.background_mode)
     _progress_queues[run_id] = q
 
     async def _run():

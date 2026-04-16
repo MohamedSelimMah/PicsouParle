@@ -39,11 +39,11 @@ def get_run(run_id: str) -> PipelineContext | None:
     return _runs.get(run_id)
 
 
-def start_run(prompt: str) -> str:
+def start_run(prompt: str, background_mode: str = "luxury_car") -> str:
     """Create a run entry and return its ID."""
     run_id = uuid4().hex[:12]
     settings.ensure_dirs()
-    ctx = PipelineContext(run_id=run_id, prompt=prompt)
+    ctx = PipelineContext(run_id=run_id, prompt=prompt, background_mode=background_mode)
     _runs[run_id] = ctx
     return run_id
 

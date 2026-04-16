@@ -259,6 +259,105 @@
     }
     .char-counter.warn { color: #C08030; }
 
+    /* ═══════════════════════════════════════
+       Background mode selector
+       ═══════════════════════════════════════ */
+    .bg-selector-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text2);
+      margin-bottom: 10px;
+    }
+
+    .bg-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .bg-option {
+      position: relative;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius-sm);
+      padding: 16px 14px;
+      cursor: pointer;
+      transition: all 0.25s;
+      outline: none;
+    }
+
+    .bg-option:hover {
+      border-color: rgba(255,215,0,0.12);
+      background: rgba(0,0,0,0.4);
+    }
+
+    .bg-option:focus-visible {
+      box-shadow: 0 0 0 2px var(--gold-dim);
+    }
+
+    .bg-option.selected {
+      border-color: var(--gold-dim);
+      background: rgba(212,164,24,0.06);
+      box-shadow: 0 0 20px rgba(212,164,24,0.08);
+    }
+
+    .bg-option-icon {
+      font-size: 20px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .bg-option-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+      transition: color 0.2s;
+    }
+
+    .bg-option.selected .bg-option-title {
+      color: var(--gold-hi);
+    }
+
+    .bg-option-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .bg-option-check {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .bg-option.selected .bg-option-check {
+      border-color: var(--gold);
+      background: var(--gold);
+      color: #0A0900;
+    }
+
+    .bg-option-check svg { opacity: 0; transition: opacity 0.2s; }
+    .bg-option.selected .bg-option-check svg { opacity: 1; }
+
+    .bg-helper {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
     .submit-btn {
       display: flex;
       align-items: center;
@@ -662,6 +761,24 @@
         <span class="hint">Entrée ↵ pour envoyer</span>
         <span class="char-counter" id="char-counter">0 / 500</span>
       </div>
+
+      <label class="bg-selector-label">Univers visuel</label>
+      <div class="bg-selector" id="bg-selector" role="radiogroup" aria-label="Background mode">
+        <button type="button" class="bg-option selected" data-mode="luxury_car" role="radio" aria-checked="true" tabindex="0">
+          <span class="bg-option-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="bg-option-icon">🚗</span>
+          <div class="bg-option-title">Luxury Car</div>
+          <div class="bg-option-desc">Gold interior, city lights, wealthy night-drive mood.</div>
+        </button>
+        <button type="button" class="bg-option" data-mode="seaside" role="radio" aria-checked="false" tabindex="-1">
+          <span class="bg-option-check"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="bg-option-icon">🌊</span>
+          <div class="bg-option-title">Seaside</div>
+          <div class="bg-option-desc">Sunset ocean view, calm luxury, villa lifestyle mood.</div>
+        </button>
+      </div>
+      <div class="bg-helper">Choose the visual world for the video.</div>
+
       <button class="submit-btn" id="submit-btn">
         <span class="btn-icon">✦</span>
         Générer la vidéo
@@ -779,6 +896,32 @@ promptEl.addEventListener('keydown', e => {
 });
 
 document.getElementById('submit-btn').addEventListener('click', go);
+
+/* ─── Background mode selector ─── */
+let selectedBackground = 'luxury_car';
+
+document.getElementById('bg-selector').addEventListener('click', e => {
+  const btn = e.target.closest('.bg-option');
+  if (!btn) return;
+  document.querySelectorAll('.bg-option').forEach(b => {
+    b.classList.remove('selected');
+    b.setAttribute('aria-checked', 'false');
+    b.tabIndex = -1;
+  });
+  btn.classList.add('selected');
+  btn.setAttribute('aria-checked', 'true');
+  btn.tabIndex = 0;
+  btn.focus();
+  selectedBackground = btn.dataset.mode;
+});
+
+document.getElementById('bg-selector').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  const options = [...document.querySelectorAll('.bg-option')];
+  const current = options.findIndex(b => b.classList.contains('selected'));
+  const next = e.key === 'ArrowRight' ? (current + 1) % options.length : (current - 1 + options.length) % options.length;
+  options[next].click();
+});
 
 /* ─── Mouth animation ─── */
 function startMouthAnim() {
@@ -928,7 +1071,7 @@ async function go() {
     res = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt, background_mode: selectedBackground }),
     });
   } catch {
     stopMouthAnim();

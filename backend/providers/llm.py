@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from openai import AsyncOpenAI
@@ -53,7 +54,7 @@ async def chat(
     models_to_try = [primary] + [m for m in FALLBACK_MODELS if m != primary]
 
     last_error: Exception | None = None
-    for m in models_to_try:
+    for i, m in enumerate(models_to_try):
         try:
             response = await client.chat.completions.create(
                 model=m,
@@ -69,8 +70,11 @@ async def chat(
             return content.strip()
         except Exception as e:
             if "429" in str(e) or "rate" in str(e).lower():
-                logger.warning(f"Model {m} rate-limited, trying next...")
                 last_error = e
+                # Account-level free-models-per-min limit — wait before next attempt
+                delay = min(4 * (i + 1), 30)
+                logger.warning(f"Model {m} rate-limited, waiting {delay}s before next...")
+                await asyncio.sleep(delay)
                 continue
             raise
 

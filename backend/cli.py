@@ -15,6 +15,7 @@ import time
 
 from backend.config import settings
 from backend.pipeline.orchestrator import start_run, run_pipeline, STEP_NAMES
+from backend.presets import VALID_BACKGROUND_MODES, DEFAULT_BACKGROUND_MODE
 
 STEP_LABELS = {
     "generate_script": "Generating script",
@@ -44,6 +45,7 @@ async def main():
     parser.add_argument("--voice", help=f"TTS voice (default: {settings.tts_voice})")
     parser.add_argument("--model", help=f"LLM model (default: {settings.llm_model})")
     parser.add_argument("--ai-background", action="store_true", help="Generate background with AI (requires OPENROUTER_API_KEY)")
+    parser.add_argument("--background", choices=VALID_BACKGROUND_MODES, default=DEFAULT_BACKGROUND_MODE, help=f"Background mode (default: {DEFAULT_BACKGROUND_MODE})")
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
@@ -65,10 +67,11 @@ async def main():
     print(f"\n🎬 Picsou Parle — Video Generator")
     print(f"   Prompt: {args.prompt}")
     print(f"   Model: {settings.llm_model}")
-    print(f"   Voice: {settings.tts_voice}\n")
+    print(f"   Voice: {settings.tts_voice}")
+    print(f"   Background: {args.background}\n")
 
     t0 = time.perf_counter()
-    run_id = start_run(args.prompt)
+    run_id = start_run(args.prompt, background_mode=args.background)
     ctx = await run_pipeline(run_id, on_progress=on_progress, from_step=args.from_step)
 
     elapsed = time.perf_counter() - t0

@@ -26,13 +26,20 @@ from backend.utils.rendering import (
     FPS,
 )
 from backend.utils.fonts import load_font
+from backend.utils.backgrounds import RENDERERS, render_background_frame
 
 logger = logging.getLogger(__name__)
 
 # Character positioning
 CHAR_TARGET_H = int(HEIGHT * 0.42)  # ~42% of canvas height
-CHAR_Y_OFFSET = 350  # pixels from top
+CHAR_Y_OFFSET = 350  # pixels from top (default)
 SUB_Y = 1480  # subtitle overlay Y position
+
+# Per-mode character Y offset so the character stands on the ground
+CHAR_Y_BY_MODE: dict[str, int] = {
+    "luxury_car": int(HEIGHT * 0.695) - int(HEIGHT * 0.42) + 10,  # feet on the pavement
+    "seaside":    int(HEIGHT * 0.62)  - int(HEIGHT * 0.42) + 10,  # feet on the sand
+}
 
 
 def _load_image(path: Path) -> Image.Image | None:
@@ -79,6 +86,7 @@ async def run(ctx: PipelineContext, settings) -> PipelineContext:
 
     # Load assets
     bg = Image.open(ctx.visuals_dir / "background.png").convert("RGB")
+    use_animated_bg = ctx.background_mode in RENDERERS
     char_closed = _load_image(ctx.visuals_dir / "character_closed.png")
     char_open = _load_image(ctx.visuals_dir / "character_open.png")
     has_char = char_closed is not None
@@ -89,6 +97,7 @@ async def run(ctx: PipelineContext, settings) -> PipelineContext:
 
     font = load_font(52)
     music_path = _find_music(settings.assets_dir)
+    char_y = CHAR_Y_BY_MODE.get(ctx.background_mode, CHAR_Y_OFFSET)
 
     logger.info(f"Rendering {total_frames} frames at {fps}fps ({duration:.1f}s)")
     if music_path:
@@ -143,8 +152,11 @@ async def run(ctx: PipelineContext, settings) -> PipelineContext:
         for frame_idx in range(total_frames):
             t = frame_idx / fps
 
-            # 1. Background with Ken Burns zoom
-            frame = apply_ken_burns(bg, t, duration)
+            # 1. Background — animated per-frame or static with Ken Burns
+            if use_animated_bg:
+                frame = render_background_frame(ctx.background_mode, t, duration)
+            else:
+                frame = apply_ken_burns(bg, t, duration)
 
             # 2. Character overlay with mouth animation
             if has_char:
@@ -162,7 +174,7 @@ async def run(ctx: PipelineContext, settings) -> PipelineContext:
 
                 # Center character horizontally
                 char_x = (WIDTH - char_img.width) // 2
-                frame.paste(char_img, (char_x, CHAR_Y_OFFSET), char_img)
+                frame.paste(char_img, (char_x, char_y), char_img)
 
             # 3. Subtitle overlay with word highlight
             sub_overlay = render_subtitle_overlay(t, ctx.subtitle_groups, font)

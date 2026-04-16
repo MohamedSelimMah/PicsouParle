@@ -12,6 +12,7 @@ class PipelineContext:
 
     run_id: str
     prompt: str
+    background_mode: str = "luxury_car"
 
     # Step outputs — filled progressively
     script: Script | None = None

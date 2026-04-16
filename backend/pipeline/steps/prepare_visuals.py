@@ -9,6 +9,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter
 
 from backend.pipeline.context import PipelineContext
+from backend.presets import BACKGROUND_PRESETS, DEFAULT_BACKGROUND_MODE
 from backend.utils.audio import extract_amplitudes, compute_adaptive_threshold
 
 logger = logging.getLogger(__name__)
@@ -104,24 +105,25 @@ async def run(ctx: PipelineContext, settings) -> PipelineContext:
     visuals_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Create (or restore from cache) background
-    mood = (ctx.script.mood if ctx.script else "default").lower()
+    preset = BACKGROUND_PRESETS.get(ctx.background_mode, BACKGROUND_PRESETS[DEFAULT_BACKGROUND_MODE])
+    cache_key = ctx.background_mode
     bg_dest = visuals_dir / "background.png"
-    cached = _get_cached_background(mood, settings.assets_dir)
+    cached = _get_cached_background(cache_key, settings.assets_dir)
     if cached:
         import shutil
         shutil.copy2(cached, bg_dest)
     else:
         generated = False
-        if getattr(settings, "ai_background", False) and ctx.script:
+        # Always attempt AI generation for presets (FLUX.1 is free)
+        if settings.openrouter_api_key:
             from backend.providers.image import generate_background
-            generated = await generate_background(ctx.script.background_description, bg_dest)
+            generated = await generate_background(preset.ai_prompt, bg_dest)
 
         if not generated:
-            top, bottom = MOOD_GRADIENTS.get(mood, MOOD_GRADIENTS["default"])
-            _create_background(top, bottom, bg_dest)
+            _create_background(preset.gradient_top, preset.gradient_bottom, bg_dest)
 
-        _save_background_cache(bg_dest, mood, settings.assets_dir)
-    logger.info(f"Background ready (mood={mood})")
+        _save_background_cache(bg_dest, cache_key, settings.assets_dir)
+    logger.info(f"Background ready (mode={ctx.background_mode})")
 
     # 2. Load character assets (mouth open/closed)
     closed, opened = _load_character_assets(settings.assets_dir, visuals_dir)
