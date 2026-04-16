@@ -19,6 +19,12 @@ FALLBACK_MODELS = [
     "arcee-ai/trinity-large-preview:free",
     "google/gemma-4-31b-it:free",
     "google/gemma-3-27b-it:free",
+    "z-ai/glm-4.5-air:free",
+    "openai/gpt-oss-120b:free",
+    "nvidia/nemotron-3-nano-30b-a3b:free",
+    "minimax/minimax-m2.5:free",
+    "nvidia/nemotron-nano-9b-v2:free",
+    "nvidia/nemotron-nano-12b-v2-vl:free",
 ]
 
 
