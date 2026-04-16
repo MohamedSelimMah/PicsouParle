@@ -860,6 +860,32 @@ function setProgress(pct) {
   document.getElementById('progress-fill').style.width = pct + '%';
 }
 
+/* ─── Finish all steps with staggered delay ─── */
+function finishAllSteps() {
+  return new Promise(resolve => {
+    const pending = STEPS.filter(s => {
+      const li = document.getElementById(`step-${s.id}`);
+      return li && li.dataset.s !== 'done';
+    });
+
+    if (pending.length === 0) { resolve(); return; }
+
+    const delay = 250; // ms between each step
+    pending.forEach((s, i) => {
+      setTimeout(() => {
+        if (!stepStartTimes[s.id]) stepStartTimes[s.id] = Date.now();
+        setStep(s.id, 'done');
+        const done = STEPS.filter(st => {
+          const li = document.getElementById(`step-${st.id}`);
+          return li && li.dataset.s === 'done';
+        }).length;
+        setProgress(Math.round((done / STEPS.length) * 100));
+        if (i === pending.length - 1) resolve();
+      }, delay * (i + 1));
+    });
+  });
+}
+
 /* ─── Celebration effect ─── */
 function celebrate() {
   const container = document.createElement('div');
@@ -946,7 +972,8 @@ async function go() {
     const status = e.data;
     if (status === 'completed') {
       es.close();
-      if (active) setStep(active, 'done');
+      // Mark ALL remaining steps as done with staggered animation
+      await finishAllSteps();
       setProgress(100);
       stopMouthAnim();
       await showResult(run_id, btn);
@@ -975,7 +1002,7 @@ async function poll(run_id, btn, activeRef) {
       setProgress(Math.round((doneCount / STEPS.length) * 100));
     }
     if (info.status === 'completed') {
-      if (activeRef) setStep(activeRef, 'done');
+      await finishAllSteps();
       setProgress(100);
       stopMouthAnim();
       await showResult(run_id, btn);

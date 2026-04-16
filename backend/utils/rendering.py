@@ -64,26 +64,43 @@ def render_subtitle_overlay(
             current_idx = i
             break
 
-    overlay = Image.new("RGBA", (WIDTH, 200), (0, 0, 0, 0))
+    MAX_TEXT_W = WIDTH - 120  # leave 60px margin each side
+    overlay = Image.new("RGBA", (WIDTH, 260), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
     words = [w.word.upper() for w in active.words]
-    full_text = " ".join(words)
 
-    # Measure total width to center
-    bbox = draw.textbbox((0, 0), full_text, font=font)
-    total_w = bbox[2] - bbox[0]
-    text_h = bbox[3] - bbox[1]
-
-    x = (WIDTH - total_w) // 2
-    y = (200 - text_h) // 2
-
-    # Draw each word with outline + optional highlight
+    # Split into lines that fit within MAX_TEXT_W
+    lines: list[list[tuple[str, int]]] = []  # list of [(word, original_index), ...]
+    current_line: list[tuple[str, int]] = []
     for i, word in enumerate(words):
-        color = highlight_color if i == current_idx else text_color
-        # Stroke for readability
-        draw.text((x, y), word, fill=color, font=font, stroke_width=4, stroke_fill="#000000")
-        word_w = draw.textlength(word + " ", font=font)
-        x += int(word_w)
+        test_text = " ".join(w for w, _ in current_line + [(word, i)])
+        tw = draw.textlength(test_text, font=font)
+        if tw > MAX_TEXT_W and current_line:
+            lines.append(current_line)
+            current_line = [(word, i)]
+        else:
+            current_line.append((word, i))
+    if current_line:
+        lines.append(current_line)
+
+    # Measure total height
+    line_h = draw.textbbox((0, 0), "Ay", font=font)[3] - draw.textbbox((0, 0), "Ay", font=font)[1]
+    line_gap = 10
+    total_h = line_h * len(lines) + line_gap * (len(lines) - 1)
+    y = (260 - total_h) // 2
+
+    # Draw each line centered
+    for line in lines:
+        line_text = " ".join(w for w, _ in line)
+        lw = draw.textlength(line_text, font=font)
+        x = (WIDTH - int(lw)) // 2
+
+        for word, idx in line:
+            color = highlight_color if idx == current_idx else text_color
+            draw.text((x, y), word, fill=color, font=font, stroke_width=4, stroke_fill="#000000")
+            word_w = draw.textlength(word + " ", font=font)
+            x += int(word_w)
+        y += line_h + line_gap
 
     return overlay

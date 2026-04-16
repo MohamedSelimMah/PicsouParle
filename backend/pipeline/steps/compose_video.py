@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 # Character positioning
 CHAR_TARGET_H = int(HEIGHT * 0.42)  # ~42% of canvas height
 CHAR_Y_OFFSET = 350  # pixels from top
-SUB_Y = 1520  # subtitle overlay Y position
+SUB_Y = 1480  # subtitle overlay Y position
 
 
 def _load_image(path: Path) -> Image.Image | None:
@@ -87,7 +87,7 @@ async def run(ctx: PipelineContext, settings) -> PipelineContext:
         char_closed = _scale_character(char_closed, CHAR_TARGET_H)
         char_open = _scale_character(char_open, CHAR_TARGET_H) if char_open else char_closed
 
-    font = load_font(64)
+    font = load_font(52)
     music_path = _find_music(settings.assets_dir)
 
     logger.info(f"Rendering {total_frames} frames at {fps}fps ({duration:.1f}s)")
