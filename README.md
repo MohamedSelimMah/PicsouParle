@@ -21,6 +21,20 @@ python -m backend.cli --prompt "Pourquoi il ne faut jamais prêter d'argent à s
 
 Output: a ~20–40s vertical MP4 in `output/`.
 
+### Screenshots
+
+| Prompt | Generating | Result |
+|:---:|:---:|:---:|
+| ![Main page](screenshots/main-page.png) | ![Generating](screenshots/generating.png) | ![Result](screenshots/results.png) |
+
+### Example output
+
+**Prompt:** *"Explique pourquoi il ne faut jamais prêter de l'argent à ses amis, avec un ton sarcastique et cynique, comme si un milliardaire donnait un conseil brutal."*
+
+https://github.com/user-attachments/assets/picsou_189d594409f8.mp4
+
+> The generated video is also available at [`screenshots/generated-test/picsou_189d594409f8.mp4`](screenshots/generated-test/picsou_189d594409f8.mp4).
+
 ---
 
 ## Architecture
@@ -145,10 +159,12 @@ python -m backend.cli --prompt "..." --voice fr-FR-HenriNeural --model google/ge
 ### Web UI
 
 ```bash
-uvicorn backend.main:app --reload --port 8000
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Open **http://localhost:8000** — the UI shows real-time progress with step-by-step tracking, animated character, and gold confetti on completion.
+Open **http://127.0.0.1:8000** (or `http://localhost:8000`) — the UI shows real-time progress with step-by-step tracking, animated character, and gold confetti on completion.
+
+> **Note:** If `localhost` doesn't work, use `127.0.0.1` directly. Some Linux systems resolve `localhost` to IPv6 `::1` which may not match the server binding.
 
 ### API
 
