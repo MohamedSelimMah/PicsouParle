@@ -43,6 +43,7 @@ async def main():
     parser.add_argument("--keep-temp", action="store_true", help="Keep intermediate files")
     parser.add_argument("--voice", help=f"TTS voice (default: {settings.tts_voice})")
     parser.add_argument("--model", help=f"LLM model (default: {settings.llm_model})")
+    parser.add_argument("--ai-background", action="store_true", help="Generate background with AI (requires OPENROUTER_API_KEY)")
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
@@ -58,6 +59,8 @@ async def main():
         settings.tts_voice = args.voice
     if args.model:
         settings.llm_model = args.model
+    if args.ai_background:
+        settings.ai_background = True
 
     print(f"\n🎬 Picsou Parle — Video Generator")
     print(f"   Prompt: {args.prompt}")

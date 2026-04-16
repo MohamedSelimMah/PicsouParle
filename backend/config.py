@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     video_fps: int = 30
     keep_temp: bool = False
 
+    # AI background generation (optional — uses OpenRouter image API)
+    ai_background: bool = False
+    image_model: str = "black-forest-labs/FLUX.1-schnell:free"
+
     # Background music (optional — place an mp3 in assets/music/)
     music_volume: float = 0.12
 

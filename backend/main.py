@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
@@ -29,6 +30,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+_STATIC = Path(__file__).resolve().parent.parent / "static"
+
+
+_ASSETS = Path(__file__).resolve().parent.parent / "assets"
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return FileResponse(_STATIC / "index.html")
+
+
+@app.get("/assets/character/{filename}", include_in_schema=False)
+async def character_asset(filename: str):
+    safe = Path(filename).name  # prevent path traversal
+    path = _ASSETS / "character" / safe
+    if not path.exists() or not path.suffix == ".png":
+        raise HTTPException(404)
+    return FileResponse(path, media_type="image/png")
 
 
 class GenerateRequest(BaseModel):
@@ -133,3 +153,8 @@ async def run_video(run_id: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+# Mount static files last so API routes take priority
+if _STATIC.exists():
+    app.mount("/", StaticFiles(directory=_STATIC, html=True), name="static")

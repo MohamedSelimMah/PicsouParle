@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Picsou Parle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #08070A;
+      --bg2:        #0E0D12;
+      --surface:    rgba(18,17,22,0.85);
+      --surface2:   rgba(24,22,30,0.9);
+      --border:     rgba(255,215,0,0.06);
+      --border-hi:  rgba(255,215,0,0.15);
+      --text:       #F0ECE4;
+      --text2:      #B8B0A4;
+      --muted:      #5A5550;
+      --gold:       #D4A418;
+      --gold-hi:    #E8B830;
+      --gold-dim:   #8B6914;
+      --gold-glow:  rgba(212,164,24,0.15);
+      --red:        #C05050;
+      --green:      #4CAF50;
+      --radius:     16px;
+      --radius-sm:  10px;
+    }
+
+    html { height: 100%; }
+
+    body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ═══════════════════════════════════════
+       Animated background
+       ═══════════════════════════════════════ */
+    .bg-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    /* Radial glow */
+    .bg-layer::before {
+      content: '';
+      position: absolute;
+      width: 800px;
+      height: 800px;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(circle, rgba(212,164,24,0.06) 0%, transparent 70%);
+      animation: breathe 8s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+      50%      { opacity: 1; transform: translateX(-50%) scale(1.15); }
+    }
+
+    /* Floating coins */
+    .coin {
+      position: absolute;
+      width: var(--size);
+      height: var(--size);
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%,
+        rgba(240,208,64,0.4),
+        rgba(180,140,20,0.15) 60%,
+        rgba(120,90,10,0.08));
+      border: 1px solid rgba(212,164,24,0.12);
+      animation: float var(--dur) ease-in-out infinite;
+      animation-delay: var(--delay);
+      opacity: 0;
+    }
+
+    @keyframes float {
+      0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10%  { opacity: var(--opa); }
+      90%  { opacity: var(--opa); }
+      100% { transform: translateY(-120px) rotate(360deg); opacity: 0; }
+    }
+
+    /* ═══════════════════════════════════════
+       Layout
+       ═══════════════════════════════════════ */
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px 80px;
+    }
+
+    /* ═══════════════════════════════════════
+       Header
+       ═══════════════════════════════════════ */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: #0A0900;
+      box-shadow: 0 4px 24px rgba(212,164,24,0.2);
+    }
+
+    .title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 800;
+      font-size: clamp(32px, 6vw, 48px);
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #F0D040, #D4A418, #F0D040);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { background-position: 0% center; }
+      50%      { background-position: 200% center; }
+    }
+
+    .subtitle {
+      color: var(--text2);
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+
+    /* ═══════════════════════════════════════
+       Card
+       ═══════════════════════════════════════ */
+    .card {
+      width: 100%;
+      max-width: 580px;
+      background: var(--surface);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 32px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02) inset;
+      transition: border-color 0.3s;
+    }
+
+    .card:hover { border-color: var(--border-hi); }
+
+    /* ═══════════════════════════════════════
+       Sections / Transitions
+       ═══════════════════════════════════════ */
+    section {
+      display: none;
+      animation: fadeSlideIn 0.5s ease-out;
+    }
+    section.active { display: block; }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ═══════════════════════════════════════
+       Form
+       ═══════════════════════════════════════ */
+    .field-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text2);
+      margin-bottom: 10px;
+    }
+
+    .textarea-wrap {
+      position: relative;
+      border-radius: var(--radius-sm);
+      transition: box-shadow 0.3s;
+    }
+
+    .textarea-wrap.focused {
+      box-shadow: 0 0 0 1px var(--gold-dim), 0 0 30px var(--gold-glow);
+    }
+
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 130px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 16px;
+      line-height: 1.65;
+      padding: 16px 18px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+      caret-color: var(--gold);
+    }
+    textarea::placeholder { color: var(--muted); }
+    textarea:focus { border-color: rgba(212,164,24,0.25); }
+
+    .below-textarea {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      margin-bottom: 20px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .char-counter {
+      font-size: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      transition: color 0.15s;
+    }
+    .char-counter.warn { color: #C08030; }
+
+    .submit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+      color: #0A0900;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      padding: 15px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      box-shadow: 0 4px 20px rgba(212,164,24,0.2);
+    }
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(212,164,24,0.3);
+    }
+    .submit-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    .submit-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* Ripple */
+    .submit-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
+      transform: scale(0);
+      opacity: 0;
+      transition: transform 0.5s, opacity 0.3s;
+      border-radius: inherit;
+    }
+    .submit-btn:active::after {
+      transform: scale(2.5);
+      opacity: 1;
+      transition: none;
+    }
+
+    .btn-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .error-msg {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border: 1px solid rgba(192,80,80,0.2);
+      border-radius: var(--radius-sm);
+      background: rgba(192,80,80,0.06);
+      color: var(--red);
+      font-size: 14px;
+      line-height: 1.5;
+      animation: shake 0.4s ease-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25%      { transform: translateX(-6px); }
+      75%      { transform: translateX(6px); }
+    }
+
+    /* ═══════════════════════════════════════
+       Loading
+       ═══════════════════════════════════════ */
+    .load-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .character-anim {
+      width: 80px;
+      height: 120px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .character-anim img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transition: opacity 0.15s;
+    }
+
+    .character-anim img.hidden { opacity: 0; }
+
+    .load-text h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .load-text p {
+      font-size: 13px;
+      color: var(--text2);
+    }
+
+    /* Progress bar */
+    .progress-track {
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 2px;
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold), var(--gold-hi));
+      border-radius: 2px;
+      transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Steps */
+    .steps { list-style: none; }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      transition: opacity 0.3s;
+    }
+    .step:last-child { border-bottom: none; }
+
+    .step-indicator {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 700;
+      transition: all 0.3s;
+    }
+
+    .step[data-s="pending"] .step-indicator {
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+    }
+
+    .step[data-s="active"] .step-indicator {
+      background: var(--gold-glow);
+      color: var(--gold);
+      box-shadow: 0 0 16px var(--gold-glow);
+      animation: pulse-ring 2s ease-in-out infinite;
+    }
+
+    .step[data-s="done"] .step-indicator {
+      background: rgba(76,175,80,0.12);
+      color: var(--green);
+    }
+
+    .step[data-s="error"] .step-indicator {
+      background: rgba(192,80,80,0.12);
+      color: var(--red);
+    }
+
+    @keyframes pulse-ring {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(212,164,24,0.15); }
+      50%      { box-shadow: 0 0 0 8px rgba(212,164,24,0); }
+    }
+
+    .step-label {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      transition: color 0.3s;
+    }
+
+    .step[data-s="active"] .step-label { color: var(--text); }
+    .step[data-s="done"] .step-label   { color: var(--text2); }
+    .step[data-s="error"] .step-label  { color: var(--red); }
+
+    .step-time {
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      min-width: 32px;
+      text-align: right;
+    }
+
+    .step[data-s="active"] .step-time { color: var(--gold); }
+
+    /* ═══════════════════════════════════════
+       Result
+       ═══════════════════════════════════════ */
+    .result-header {
+      text-align: center;
+      margin-bottom: 24px;
+      animation: fadeSlideIn 0.6s ease-out;
+    }
+
+    .result-header h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .result-title {
+      font-size: 13px;
+      color: var(--gold);
+      font-weight: 500;
+    }
+
+    .video-container {
+      position: relative;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: #000;
+      margin-bottom: 24px;
+      animation: fadeSlideIn 0.7s ease-out;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+
+    video {
+      display: block;
+      width: 100%;
+      max-height: 60vh;
+      border-radius: var(--radius-sm);
+      background: #000;
+    }
+
+    /* Script quote */
+    .script-quote {
+      background: rgba(0,0,0,0.25);
+      border-left: 3px solid var(--gold-dim);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      animation: fadeSlideIn 0.8s ease-out;
+    }
+
+    .script-quote p {
+      font-size: 14px;
+      font-style: italic;
+      color: var(--text2);
+      line-height: 1.6;
+    }
+
+    .script-quote .quote-attr {
+      font-size: 12px;
+      font-style: normal;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* Actions */
+    .result-actions {
+      display: flex;
+      gap: 12px;
+      animation: fadeSlideIn 0.9s ease-out;
+    }
+
+    .result-actions a,
+    .result-actions button {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 13px 20px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-dl {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+      color: #0A0900;
+      border: none;
+      box-shadow: 0 4px 16px rgba(212,164,24,0.15);
+    }
+    .btn-dl:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(212,164,24,0.25);
+    }
+
+    .btn-new {
+      background: transparent;
+      color: var(--text2);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .btn-new:hover {
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    /* ═══════════════════════════════════════
+       Celebration particles
+       ═══════════════════════════════════════ */
+    .celebration {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .confetti {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      animation: confettiFall var(--dur) ease-in forwards;
+      animation-delay: var(--delay);
+      opacity: 0;
+    }
+
+    @keyframes confettiFall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ═══════════════════════════════════════
+       Footer
+       ═══════════════════════════════════════ */
+    .footer {
+      margin-top: 48px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .footer a {
+      color: var(--gold-dim);
+      text-decoration: none;
+    }
+    .footer a:hover { color: var(--gold); }
+
+    /* ═══════════════════════════════════════
+       Responsive
+       ═══════════════════════════════════════ */
+    @media (max-width: 640px) {
+      .app { padding: 32px 16px 60px; }
+      .card { padding: 28px 22px; }
+      .header { margin-bottom: 36px; }
+      .logo-icon { width: 40px; height: 40px; font-size: 20px; }
+      .character-anim { width: 64px; height: 96px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Animated background coins -->
+<div class="bg-layer" id="bg-layer"></div>
+
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo-row">
+      <div class="logo-icon">$</div>
+      <h1 class="title">Picsou Parle</h1>
+    </div>
+    <p class="subtitle">Laissez le canard le plus riche du monde donner son avis.</p>
+  </header>
+
+  <!-- Main card -->
+  <div class="card">
+
+    <!-- ═══ FORM ═══ -->
+    <section id="s-form" class="active">
+      <label class="field-label" for="prompt-input">Sujet de la vidéo</label>
+      <div class="textarea-wrap" id="textarea-wrap">
+        <textarea
+          id="prompt-input"
+          placeholder="Ex : Pourquoi il ne faut jamais prêter d'argent à ses amis…"
+          maxlength="500"
+          autofocus
+        ></textarea>
+      </div>
+      <div class="below-textarea">
+        <span class="hint">Entrée ↵ pour envoyer</span>
+        <span class="char-counter" id="char-counter">0 / 500</span>
+      </div>
+      <button class="submit-btn" id="submit-btn">
+        <span class="btn-icon">✦</span>
+        Générer la vidéo
+      </button>
+      <div id="error-slot"></div>
+    </section>
+
+    <!-- ═══ LOADING ═══ -->
+    <section id="s-load">
+      <div class="load-header">
+        <div class="character-anim" id="character-anim">
+          <img id="char-closed" src="/assets/character/picsou_mouth_closed.png" alt="" />
+          <img id="char-open" src="/assets/character/picsou_mouth_open.png" alt="" class="hidden" />
+        </div>
+        <div class="load-text">
+          <h3>Picsou prépare son discours…</h3>
+          <p id="load-description">Initialisation du pipeline</p>
+        </div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <ul class="steps" id="step-list"></ul>
+    </section>
+
+    <!-- ═══ RESULT ═══ -->
+    <section id="s-result">
+      <div class="result-header">
+        <h3>Votre vidéo est prête !</h3>
+        <p class="result-title" id="result-title"></p>
+      </div>
+      <div class="video-container">
+        <video id="result-video" controls playsinline></video>
+      </div>
+      <div class="script-quote" id="script-quote" style="display:none">
+        <p id="script-first-line"></p>
+        <div class="quote-attr">— Balthazar Picsou</div>
+      </div>
+      <div class="result-actions">
+        <a id="dl-link" class="btn-dl" download>
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9m0 0L4.5 7.5M8 11l3.5-3.5M2 14h12"/></svg>
+          Télécharger
+        </a>
+        <button class="btn-new" onclick="resetApp()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 0 1 10.3-4.2M14 2v4h-4M14 8a6 6 0 0 1-10.3 4.2M2 14v-4h4"/></svg>
+          Nouvelle vidéo
+        </button>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="footer">
+    Propulsé par edge-tts, OpenRouter &amp; FFmpeg — 100% gratuit
+  </div>
+</div>
+
+<script>
+/* ─── Background coins ─── */
+(function initCoins() {
+  const layer = document.getElementById('bg-layer');
+  for (let i = 0; i < 18; i++) {
+    const coin = document.createElement('div');
+    coin.className = 'coin';
+    const size = 6 + Math.random() * 14;
+    coin.style.setProperty('--size', size + 'px');
+    coin.style.setProperty('--dur', (18 + Math.random() * 24) + 's');
+    coin.style.setProperty('--delay', (Math.random() * 20) + 's');
+    coin.style.setProperty('--opa', (0.15 + Math.random() * 0.2).toFixed(2));
+    coin.style.left = (Math.random() * 100) + '%';
+    layer.appendChild(coin);
+  }
+})();
+
+/* ─── Constants ─── */
+const STEPS = [
+  { id: "generate_script",     label: "Écriture du script",    desc: "Picsou réfléchit à ce qu'il va dire…" },
+  { id: "generate_voice",      label: "Synthèse vocale",       desc: "Enregistrement de la voix…" },
+  { id: "generate_timestamps", label: "Synchronisation",       desc: "Alignement des mots sur l'audio…" },
+  { id: "prepare_visuals",     label: "Préparation visuelle",  desc: "Création du décor et de l'animation…" },
+  { id: "build_subtitles",     label: "Sous-titres",           desc: "Rendu des sous-titres dynamiques…" },
+  { id: "compose_video",       label: "Montage final",         desc: "Assemblage FFmpeg en cours…" },
+];
+
+let es = null;
+let mouthInterval = null;
+let stepStartTimes = {};
+
+const sForm   = document.getElementById('s-form');
+const sLoad   = document.getElementById('s-load');
+const sResult = document.getElementById('s-result');
+
+/* ─── Navigation ─── */
+function show(sec) {
+  [sForm, sLoad, sResult].forEach(s => s.classList.remove('active'));
+  sec.classList.add('active');
+}
+
+/* ─── Textarea interactions ─── */
+const promptEl  = document.getElementById('prompt-input');
+const counterEl = document.getElementById('char-counter');
+const wrapEl    = document.getElementById('textarea-wrap');
+
+promptEl.addEventListener('focus', () => wrapEl.classList.add('focused'));
+promptEl.addEventListener('blur',  () => wrapEl.classList.remove('focused'));
+
+promptEl.addEventListener('input', () => {
+  const n = promptEl.value.length;
+  counterEl.textContent = `${n} / 500`;
+  counterEl.className = 'char-counter' + (n > 450 ? ' warn' : '');
+});
+
+promptEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); }
+});
+
+document.getElementById('submit-btn').addEventListener('click', go);
+
+/* ─── Mouth animation ─── */
+function startMouthAnim() {
+  const closed = document.getElementById('char-closed');
+  const open   = document.getElementById('char-open');
+  let state = false;
+  mouthInterval = setInterval(() => {
+    state = !state;
+    closed.classList.toggle('hidden', state);
+    open.classList.toggle('hidden', !state);
+  }, 220);
+}
+
+function stopMouthAnim() {
+  if (mouthInterval) { clearInterval(mouthInterval); mouthInterval = null; }
+  const closed = document.getElementById('char-closed');
+  const open   = document.getElementById('char-open');
+  if (closed) closed.classList.remove('hidden');
+  if (open) open.classList.add('hidden');
+}
+
+/* ─── Build step list ─── */
+function buildSteps() {
+  const ul = document.getElementById('step-list');
+  ul.innerHTML = '';
+  stepStartTimes = {};
+  STEPS.forEach((s, i) => {
+    const li = document.createElement('li');
+    li.className = 'step';
+    li.id = `step-${s.id}`;
+    li.dataset.s = 'pending';
+    li.innerHTML = `
+      <div class="step-indicator">${i + 1}</div>
+      <span class="step-label">${s.label}</span>
+      <span class="step-time"></span>`;
+    ul.appendChild(li);
+  });
+}
+
+function setStep(id, state) {
+  const li = document.getElementById(`step-${id}`);
+  if (!li) return;
+  const ind = li.querySelector('.step-indicator');
+  const time = li.querySelector('.step-time');
+
+  li.dataset.s = state;
+
+  if (state === 'active') {
+    ind.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="20" stroke-dashoffset="20"><animate attributeName="stroke-dashoffset" values="20;0" dur="1.5s" repeatCount="indefinite"/></circle></svg>';
+    stepStartTimes[id] = Date.now();
+    startTimer(id);
+  } else if (state === 'done') {
+    ind.innerHTML = '✓';
+    if (stepStartTimes[id]) {
+      const elapsed = ((Date.now() - stepStartTimes[id]) / 1000).toFixed(1);
+      time.textContent = elapsed + 's';
+    }
+  } else if (state === 'error') {
+    ind.innerHTML = '✕';
+  }
+}
+
+function startTimer(id) {
+  const li = document.getElementById(`step-${id}`);
+  if (!li) return;
+  const time = li.querySelector('.step-time');
+  const t0 = stepStartTimes[id];
+
+  const tick = () => {
+    if (li.dataset.s !== 'active') return;
+    time.textContent = ((Date.now() - t0) / 1000).toFixed(1) + 's';
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+/* ─── Progress bar ─── */
+function setProgress(pct) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+/* ─── Celebration effect ─── */
+function celebrate() {
+  const container = document.createElement('div');
+  container.className = 'celebration';
+  document.body.appendChild(container);
+
+  const colors = ['#D4A418','#F0D040','#8B6914','#FFD700','#E8B830','#FFF8DC'];
+  for (let i = 0; i < 50; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = (Math.random() * 100) + '%';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.setProperty('--dur', (1.5 + Math.random() * 2) + 's');
+    c.style.setProperty('--delay', (Math.random() * 0.5) + 's');
+    c.style.width = (5 + Math.random() * 6) + 'px';
+    c.style.height = (5 + Math.random() * 6) + 'px';
+    container.appendChild(c);
+  }
+
+  setTimeout(() => container.remove(), 4000);
+}
+
+/* ─── Main generation flow ─── */
+async function go() {
+  const prompt = promptEl.value.trim();
+  if (!prompt) { promptEl.focus(); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  document.getElementById('error-slot').innerHTML = '';
+
+  buildSteps();
+  setProgress(0);
+  document.getElementById('load-description').textContent = 'Initialisation du pipeline';
+  show(sLoad);
+  startMouthAnim();
+
+  let res;
+  try {
+    res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+    });
+  } catch {
+    stopMouthAnim();
+    fail('Impossible de contacter le serveur.', btn);
+    return;
+  }
+
+  if (!res.ok) {
+    stopMouthAnim();
+    const body = await res.json().catch(() => ({}));
+    fail(body.detail || `Erreur ${res.status}`, btn);
+    return;
+  }
+
+  const { run_id } = await res.json();
+  let active = null;
+  let doneCount = 0;
+
+  es = new EventSource(`/api/runs/${run_id}/progress`);
+
+  es.addEventListener('step', e => {
+    const step = e.data;
+    if (step === 'done') return;
+
+    if (active && active !== step) {
+      setStep(active, 'done');
+      doneCount++;
+      setProgress(Math.round((doneCount / STEPS.length) * 100));
+    }
+
+    active = step;
+    setStep(step, 'active');
+
+    const info = STEPS.find(s => s.id === step);
+    if (info) {
+      document.getElementById('load-description').textContent = info.desc;
+    }
+  });
+
+  es.addEventListener('status', async e => {
+    const status = e.data;
+    if (status === 'completed') {
+      es.close();
+      if (active) setStep(active, 'done');
+      setProgress(100);
+      stopMouthAnim();
+      await showResult(run_id, btn);
+    } else if (status === 'failed') {
+      es.close();
+      stopMouthAnim();
+      const info = await fetch(`/api/runs/${run_id}/status`).then(r => r.json()).catch(() => ({}));
+      if (active) setStep(active, 'error');
+      fail(info.error || 'Le pipeline a échoué.', btn);
+    }
+  });
+
+  es.onerror = () => { es.close(); poll(run_id, btn, active); };
+}
+
+async function poll(run_id, btn, activeRef) {
+  let doneCount = 0;
+  for (let i = 0; i < 120; i++) {
+    await new Promise(r => setTimeout(r, 3000));
+    const info = await fetch(`/api/runs/${run_id}/status`).then(r => r.json()).catch(() => null);
+    if (!info) continue;
+    if (info.current_step && info.current_step !== 'done' && info.current_step !== activeRef) {
+      if (activeRef) { setStep(activeRef, 'done'); doneCount++; }
+      activeRef = info.current_step;
+      setStep(activeRef, 'active');
+      setProgress(Math.round((doneCount / STEPS.length) * 100));
+    }
+    if (info.status === 'completed') {
+      if (activeRef) setStep(activeRef, 'done');
+      setProgress(100);
+      stopMouthAnim();
+      await showResult(run_id, btn);
+      return;
+    }
+    if (info.status === 'failed') {
+      stopMouthAnim();
+      if (activeRef) setStep(activeRef, 'error');
+      fail(info.error || 'Échec.', btn);
+      return;
+    }
+  }
+  stopMouthAnim();
+  fail('Timeout — veuillez réessayer.', btn);
+}
+
+async function showResult(run_id, btn) {
+  const url = `/api/runs/${run_id}/video`;
+  const video = document.getElementById('result-video');
+  video.src = url;
+
+  const dl = document.getElementById('dl-link');
+  dl.href = url;
+  dl.download = `picsou_${run_id}.mp4`;
+
+  // Fetch script info for display
+  try {
+    const info = await fetch(`/api/runs/${run_id}/status`).then(r => r.json());
+    if (info.script) {
+      document.getElementById('result-title').textContent = info.script.title || '';
+      if (info.script.lines && info.script.lines.length > 0) {
+        const firstLine = typeof info.script.lines[0] === 'string'
+          ? info.script.lines[0]
+          : info.script.lines[0].text || '';
+        if (firstLine) {
+          document.getElementById('script-first-line').textContent = '\u00AB ' + firstLine + ' \u00BB';
+          document.getElementById('script-quote').style.display = 'block';
+        }
+      }
+    }
+  } catch {}
+
+  celebrate();
+  show(sResult);
+  if (btn) btn.disabled = false;
+}
+
+function fail(msg, btn) {
+  stopMouthAnim();
+  show(sForm);
+  document.getElementById('error-slot').innerHTML = '<div class="error-msg">' + escHtml(msg) + '</div>';
+  if (btn) btn.disabled = false;
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function resetApp() {
+  if (es) { es.close(); es = null; }
+  stopMouthAnim();
+  document.getElementById('script-quote').style.display = 'none';
+  show(sForm);
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('error-slot').innerHTML = '';
+}
+</script>
+</body>
+</html>

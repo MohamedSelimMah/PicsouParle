@@ -81,15 +81,47 @@ def _load_character_assets(assets_dir: Path, visuals_dir: Path) -> tuple[Path | 
     return closed_dst, open_dst
 
 
+def _get_cached_background(mood: str, assets_dir: Path) -> Path | None:
+    """Return cached background path if it exists for this mood."""
+    cache_path = assets_dir / "cache" / f"background_{mood}.png"
+    if cache_path.exists():
+        logger.info(f"Background cache hit (mood={mood})")
+        return cache_path
+    return None
+
+
+def _save_background_cache(src: Path, mood: str, assets_dir: Path) -> None:
+    """Save a generated background to the cache."""
+    cache_dir = assets_dir / "cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    import shutil
+    shutil.copy2(src, cache_dir / f"background_{mood}.png")
+    logger.info(f"Background cached (mood={mood})")
+
+
 async def run(ctx: PipelineContext, settings) -> PipelineContext:
     visuals_dir = settings.tmp_dir / ctx.run_id / "visuals"
     visuals_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Create background
+    # 1. Create (or restore from cache) background
     mood = (ctx.script.mood if ctx.script else "default").lower()
-    top, bottom = MOOD_GRADIENTS.get(mood, MOOD_GRADIENTS["default"])
-    _create_background(top, bottom, visuals_dir / "background.png")
-    logger.info(f"Background created (mood={mood})")
+    bg_dest = visuals_dir / "background.png"
+    cached = _get_cached_background(mood, settings.assets_dir)
+    if cached:
+        import shutil
+        shutil.copy2(cached, bg_dest)
+    else:
+        generated = False
+        if getattr(settings, "ai_background", False) and ctx.script:
+            from backend.providers.image import generate_background
+            generated = await generate_background(ctx.script.background_description, bg_dest)
+
+        if not generated:
+            top, bottom = MOOD_GRADIENTS.get(mood, MOOD_GRADIENTS["default"])
+            _create_background(top, bottom, bg_dest)
+
+        _save_background_cache(bg_dest, mood, settings.assets_dir)
+    logger.info(f"Background ready (mood={mood})")
 
     # 2. Load character assets (mouth open/closed)
     closed, opened = _load_character_assets(settings.assets_dir, visuals_dir)

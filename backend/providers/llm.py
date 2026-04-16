@@ -36,6 +36,7 @@ def get_client() -> AsyncOpenAI:
         _client = AsyncOpenAI(
             api_key=settings.openrouter_api_key,
             base_url="https://openrouter.ai/api/v1",
+            max_retries=0,  # Let our fallback chain handle retries across models
         )
     return _client
 
